@@ -764,7 +764,6 @@ export const useInfinityCanvas = (
             dispatch(selectShape(newId));
             activeShapeId.current = newId;
             isDragging.current = true;
-            isDragging.current = true;
             dragStartPos.current = { x: worldPos.x, y: worldPos.y };
         } else if (activeTool === 'arrow' || activeTool === 'line') {
             // CREATE ARROW OR LINE
