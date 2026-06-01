@@ -153,11 +153,13 @@ graph TB
 
 ### AI Pipeline
 
+The design agent implements a **dual-step Architect → Designer** pattern:
+
 ```mermaid
 graph LR
-    A["👤 User Prompt"] --> B["🏗️ Architect Agent"]
+    A["👤 User Prompt"] --> B["🏗️ Architect"]
     B --> C["📋 JSON Plan<br/>3 Screens + Theme"]
-    C --> D["🎨 Designer Agent"]
+    C --> D["🎨 Designer"]
     D --> E["📱 3 Screens<br/>HTML + CSS"]
     
     B -->|"Groq"| F["🟡 Groq"]
