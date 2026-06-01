@@ -86,35 +86,80 @@ npm install && npm run dev
 
 ## 🏗 Architecture
 
-> **📄 Full architecture documentation: [ARCHITECTURE.md](./ARCHITECTURE.md)**
-
 ### High-Level Overview
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    NEXT.JS FRONTEND                      │
-│            (App Router, React 19, TypeScript)             │
-├───────────┬──────────────┬──────────────┬────────────────┤
-│ Dashboard │ Canvas Editor│ Design Canvas│  Style Guide   │
-│ (Projects)│ (Wireframes) │ (AI Screens) │  (Moodboard)   │
-├───────────┴──────┬───────┴──────┬───────┴────────────────┤
-│  Redux Toolkit   │   Convex     │   Custom Hooks         │
-│  + syncMiddleware│   React SDK  │   (Canvas, Agent, etc) │
-├──────────────────┴──────────────┴────────────────────────┤
-│                   CONVEX BACKEND                          │
-│         (Real-time DB, Serverless Actions)                │
-├────────────┬───────────────┬─────────────────────────────┤
-│ designAgent│    ai.ts      │     inspiration.ts          │
-│ (Groq +    │ (Gemini 2.5   │  (Multi-style variations)  │
-│  Cerebras) │  Flash)       │                             │
-├────────────┴───────────────┴─────────────────────────────┤
-│                 EXTERNAL AI PROVIDERS                     │
-│   Groq (LLaMA 3.3 70B) │ Cerebras (GPT-OSS 120B)       │
-│   Google Gemini 2.5     │ Replicate (Flux.1 Pro)        │
-└─────────────────────────────────────────────────────────┘
+                         ┌─────────────────────────────────────────────────┐
+                         │                    USER                          │
+                         │              Browser / App                        │
+                         └────────────────────┬──────────────────────────────┘
+                                              │ HTTPS
+                         ┌────────────────────▼──────────────────────────────┐
+                         │               NEXT.JS FRONTEND                     │
+                         │            (App Router, React 19, TS)              │
+                         │  ┌──────────┬──────────┬──────────┬──────────┐    │
+                         │  │Dashboard │ Canvas   │  Style   │  Auth    │    │
+                         │  │(Projects)│ Editor   │  Guide   │  Pages   │    │
+                         │  └────┬─────┴────┬─────┴────┬─────┴────┬─────┘    │
+                         │       │          │          │          │           │
+                         │  ┌────▼──────────▼──────────▼──────────▼─────┐    │
+                         │  │           REDUX TOOLKIT                   │    │
+                         │  │  canvasSlice │ styleGuideSlice │ genSlice │    │
+                         │  └────┬────────────────┬──────────────────────┘    │
+                         │       │   syncMiddleware (debounced 200ms)         │
+                         └───────┼────────────────┼───────────────────────────┘
+                                 │                │
+                         ┌───────▼────────────────▼───────────────────────────┐
+                         │              CONVEX BACKEND                        │
+                         │         (Real-time DB + Serverless)                 │
+                         │  ┌──────────┬──────────┬──────────┬──────────┐     │
+                         │  │projects  │  frames  │moodBoards│  users   │     │
+                         │  │genJobs   │chatMsg   │inspiration│subscriptions│ │
+                         │  └──────────┴────┬─────┴──────────┴──────────┘     │
+                         │                  │                                  │
+                         │  ┌───────────────▼──────────────────┐             │
+                         │  │           DESIGN AGENT              │             │
+                         │  │  ┌─────────┐    ┌─────────┐       │             │
+                         │  │  │Architect│───▶│Designer │       │             │
+                         │  │  │ (Groq)  │    │ (Groq)  │       │             │
+                         │  │  └─────────┘    └─────────┘       │             │
+                         │  │        │              │           │             │
+                         │  │  ┌─────▼─────┐  ┌────▼──────┐     │             │
+                         │  │  │Cerebras   │  │  Gemini   │     │             │
+                         │  │  │(fallback) │  │ 2.5 Flash │     │             │
+                         │  │  └───────────┘  └───────────┘     │             │
+                         │  └─────────────────────────────────────┘             │
+                         └────────────────────┬─────────────────────────────────┘
+                                              │ External APIs
+              ┌─────────────────────────────┼─────────────────────────────┐
+              │                             │                             │
+      ┌───────▼───────┐            ┌────────▼────────┐          ┌────────▼────────┐
+      │     GROQ      │            │   CEREBRAS      │          │    GEMINI       │
+      │ LLaMA 3.3 70B │            │  GPT-OSS 120B   │          │  2.5 Flash      │
+      │ (Primary)     │            │  (Fallback)     │          │  (Style/Crit)   │
+      └───────────────┘            └─────────────────┘          └─────────────────┘
 ```
 
-**[→ View detailed architecture diagrams](./ARCHITECTURE.md)** — includes AI pipeline flow, canvas engine breakdown, state management flow, and database schema visualization.
+### AI Pipeline Flow
+
+```
+User Prompt ──▶ Architect Agent ──▶ JSON Plan ──▶ Designer Agent ──▶ 3 Screens
+                    (Groq)           (screens+      (Groq/Cerebras   (HTML+CSS)
+                                    theme)            fallback)
+                                          │
+                                          ▼
+                               ┌──────────────────┐
+                               │  3-Tier Fallback │
+                               │ Groq→Cerebras→Gem │
+                               └──────────────────┘
+```
+
+### Canvas Engine
+
+The infinity canvas (`hooks/use-infinity-canvas.ts`, ~1438 lines) uses **dual-layer rendering**:
+- **Static Layer** — Grid + non-dragged shapes (redraws on change)
+- **Active Layer** — Selection overlay, drag preview, pen tool (60fps LERP animation)
+- **DOMMatrix transforms** with LERP factor 0.15 for smooth pan/zoom
 
 ### AI Pipeline
 
