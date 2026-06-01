@@ -224,7 +224,7 @@ export const generateImage = action({
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                    version: "4c5f9e6c8c5f4e4c8e4c8e4c8c5f9e6c8c5f4e4c", // Flux.1.1 Pro version ID
+                    version: process.env.REPLICATE_FLUX_VERSION || "4c5f9e6c8c5f4e4c8e4c8e4c8c5f9e6c8c5f4e4c",
                     input: {
                         prompt: args.prompt,
                         aspect_ratio: "16:9",
