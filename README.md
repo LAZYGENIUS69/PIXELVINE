@@ -86,80 +86,140 @@ npm install && npm run dev
 
 ## 🏗 Architecture
 
-### High-Level Overview
+### System Overview
 
-```
-                         ┌─────────────────────────────────────────────────┐
-                         │                    USER                          │
-                         │              Browser / App                        │
-                         └────────────────────┬──────────────────────────────┘
-                                              │ HTTPS
-                         ┌────────────────────▼──────────────────────────────┐
-                         │               NEXT.JS FRONTEND                     │
-                         │            (App Router, React 19, TS)              │
-                         │  ┌──────────┬──────────┬──────────┬──────────┐    │
-                         │  │Dashboard │ Canvas   │  Style   │  Auth    │    │
-                         │  │(Projects)│ Editor   │  Guide   │  Pages   │    │
-                         │  └────┬─────┴────┬─────┴────┬─────┴────┬─────┘    │
-                         │       │          │          │          │           │
-                         │  ┌────▼──────────▼──────────▼──────────▼─────┐    │
-                         │  │           REDUX TOOLKIT                   │    │
-                         │  │  canvasSlice │ styleGuideSlice │ genSlice │    │
-                         │  └────┬────────────────┬──────────────────────┘    │
-                         │       │   syncMiddleware (debounced 200ms)         │
-                         └───────┼────────────────┼───────────────────────────┘
-                                 │                │
-                         ┌───────▼────────────────▼───────────────────────────┐
-                         │              CONVEX BACKEND                        │
-                         │         (Real-time DB + Serverless)                 │
-                         │  ┌──────────┬──────────┬──────────┬──────────┐     │
-                         │  │projects  │  frames  │moodBoards│  users   │     │
-                         │  │genJobs   │chatMsg   │inspiration│subscriptions│ │
-                         │  └──────────┴────┬─────┴──────────┴──────────┘     │
-                         │                  │                                  │
-                         │  ┌───────────────▼──────────────────┐             │
-                         │  │           DESIGN AGENT              │             │
-                         │  │  ┌─────────┐    ┌─────────┐       │             │
-                         │  │  │Architect│───▶│Designer │       │             │
-                         │  │  │ (Groq)  │    │ (Groq)  │       │             │
-                         │  │  └─────────┘    └─────────┘       │             │
-                         │  │        │              │           │             │
-                         │  │  ┌─────▼─────┐  ┌────▼──────┐     │             │
-                         │  │  │Cerebras   │  │  Gemini   │     │             │
-                         │  │  │(fallback) │  │ 2.5 Flash │     │             │
-                         │  │  └───────────┘  └───────────┘     │             │
-                         │  └─────────────────────────────────────┘             │
-                         └────────────────────┬─────────────────────────────────┘
-                                              │ External APIs
-              ┌─────────────────────────────┼─────────────────────────────┐
-              │                             │                             │
-      ┌───────▼───────┐            ┌────────▼────────┐          ┌────────▼────────┐
-      │     GROQ      │            │   CEREBRAS      │          │    GEMINI       │
-      │ LLaMA 3.3 70B │            │  GPT-OSS 120B   │          │  2.5 Flash      │
-      │ (Primary)     │            │  (Fallback)     │          │  (Style/Crit)   │
-      └───────────────┘            └─────────────────┘          └─────────────────┘
+```mermaid
+graph TB
+    subgraph User["👤 USER"]
+        Browser[🌐 Browser]
+    end
+
+    subgraph Frontend["⚛️ NEXT.JS FRONTEND"]
+        direction TB
+        Dashboard[📊 Dashboard]
+        Canvas[🎨 Canvas Editor]
+        StyleGuide[🎨 Style Guide]
+        AuthPages[🔐 Auth Pages]
+        
+        Dashboard --> Redux[(Redux Toolkit)]
+        Canvas --> Redux
+        StyleGuide --> Redux
+        
+        Redux -->|syncMiddleware<br/>debounced 200ms| ConvexClient[📡 Convex Client]
+    end
+
+    subgraph Backend["🗄️ CONVEX BACKEND"]
+        direction TB
+        DB[(🗃️ Real-time DB)]
+        DesignAgent[🤖 Design Agent]
+        AIactions[✨ ai.ts]
+        Inspiration[💡 inspiration.ts]
+        
+        ConvexClient --> DB
+        ConvexClient --> DesignAgent
+        ConvexClient --> AIactions
+        ConvexClient --> Inspiration
+    end
+
+    subgraph AILayer["🤖 AI LAYER"]
+        direction LR
+        Architect["🏗️ Architect<br/>(Groq)"]
+        Designer["🎨 Designer<br/>(Groq/Cerebras)"]
+        StyleGen["🎨 Style Guide<br/>(Gemini 2.5)"]
+        Critique["🔍 UX Critique<br/>(Gemini 2.5)"]
+        
+        Architect -->|JSON Plan| Designer
+        Designer -->|HTML Screens| FrameDB[(frames)]
+    end
+
+    subgraph External["☁️ EXTERNAL AI PROVIDERS"]
+        Groq["🟡 Groq<br/>LLaMA 3.3 70B"]
+        Cerebras["🔵 Cerebras<br/>GPT-OSS 120B"]
+        Gemini["🟣 Gemini<br/>2.5 Flash"]
+        Replicate["🟠 Replicate<br/>Flux.1 Pro"]
+    end
+
+    User --> Frontend
+    DesignAgent -->|Groq → Cerebras → Gemini| External
+    AIactions --> Gemini
+    Inspiration --> Groq
+
+    style User fill:#1a1a2e,color:#fff
+    style Frontend fill:#16213e,color:#fff
+    style Backend fill:#0f3460,color:#fff
+    style AILayer fill:#533483,color:#fff
+    style External fill:#e94560,color:#fff
 ```
 
-### AI Pipeline Flow
+### AI Pipeline
 
-```
-User Prompt ──▶ Architect Agent ──▶ JSON Plan ──▶ Designer Agent ──▶ 3 Screens
-                    (Groq)           (screens+      (Groq/Cerebras   (HTML+CSS)
-                                    theme)            fallback)
-                                          │
-                                          ▼
-                               ┌──────────────────┐
-                               │  3-Tier Fallback │
-                               │ Groq→Cerebras→Gem │
-                               └──────────────────┘
+```mermaid
+graph LR
+    A["👤 User Prompt"] --> B["🏗️ Architect Agent"]
+    B --> C["📋 JSON Plan<br/>3 Screens + Theme"]
+    C --> D["🎨 Designer Agent"]
+    D --> E["📱 3 Screens<br/>HTML + CSS"]
+    
+    B -->|"Groq"| F["🟡 Groq"]
+    B -.->|"429?"| G["🔵 Cerebras"]
+    G -.->|"429?"| H["🟣 Gemini"]
+    
+    style F fill:#f59e0b,color:#000
+    style G fill:#3b82f6,color:#fff
+    style H fill:#8b5cf6,color:#fff
 ```
 
 ### Canvas Engine
 
-The infinity canvas (`hooks/use-infinity-canvas.ts`, ~1438 lines) uses **dual-layer rendering**:
-- **Static Layer** — Grid + non-dragged shapes (redraws on change)
-- **Active Layer** — Selection overlay, drag preview, pen tool (60fps LERP animation)
-- **DOMMatrix transforms** with LERP factor 0.15 for smooth pan/zoom
+```mermaid
+graph TD
+    A["🎨 Canvas Event"] --> B{Event Type?}
+    
+    B -->|Drag| C["Active Layer<br/>60fps LERP"]
+    B -->|Shape Add| D["Static Layer<br/>Rebuild"]
+    B -->|Zoom| E["DOMMatrix<br/>Transform"]
+    
+    C --> F["Selection Overlay"]
+    D --> G["Grid + Shapes"]
+    
+    subgraph Rendering["🎯 Dual Layer Rendering"]
+        C
+        D
+    end
+    
+    F --> H["🖱️ User Sees"]
+    G --> H
+    
+    style Rendering fill:#10b981,color:#fff
+```
+
+### State Management
+
+```mermaid
+sequenceDiagram
+    participant User as 👤 User
+    participant Canvas as 🎨 Canvas
+    participant Redux as 📦 Redux
+    participant Middleware as 🔄 syncMiddleware
+    participant Convex as 📡 Convex
+    participant DB as 🗄️ DB
+
+    User->>Canvas: Interact
+    Canvas->>Redux: dispatch(action)
+    Redux->>Middleware: action
+    Middleware->>Redux: next(action)
+    
+    alt Not Dragging
+        Middleware->>Middleware: debounce 200ms
+        Middleware->>Convex: mutation
+        Convex->>DB: save
+    else Dragging
+        Middleware->>Redux: skip sync
+    end
+
+    DB-->>Convex: real-time update
+    Convex-->>Redux: subscribe
+    Redux-->>Canvas: re-render
 
 ### AI Pipeline
 
