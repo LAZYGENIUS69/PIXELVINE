@@ -86,6 +86,8 @@ npm install && npm run dev
 
 ## 🏗 Architecture
 
+> **📄 Full architecture documentation: [ARCHITECTURE.md](./ARCHITECTURE.md)**
+
 ### High-Level Overview
 
 ```
@@ -111,6 +113,8 @@ npm install && npm run dev
 │   Google Gemini 2.5     │ Replicate (Flux.1 Pro)        │
 └─────────────────────────────────────────────────────────┘
 ```
+
+**[→ View detailed architecture diagrams](./ARCHITECTURE.md)** — includes AI pipeline flow, canvas engine breakdown, state management flow, and database schema visualization.
 
 ### AI Pipeline
 
