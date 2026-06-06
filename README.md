@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/PIXELVINE-Deep%20Design%20Engineering%20Agent-8B5CF6?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0ibTEyIDMtMS45MTIgNS44MTNhMiAyIDAgMCAxLTEuMjc1IDEuMjc1TDMgMTJsNS44MTMgMS45MTJhMiAyIDAgMCAxIDEuMjc1IDEuMjc1TDEyIDIxbDEuOTEyLTUuODEzYTIgMiAwIDAgMSAxLjI3NS0xLjI3NUwyMSAxMmwtNS44MTMtMS45MTJhMiAyIDAgMCAxLTEuMjc1LTEuMjc1TDEyIDN6Ii8+PC9zdmc+" alt="PixelVine" />
+  <img src="https://img.shields.io/badge/PIXELVINE-Deep%20Design%20Engineering%20Agent-8B5CF6?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmci[...]
 </p>
 
 <h1 align="center">PIXELVINE</h1>
@@ -31,7 +31,7 @@
 
 Design-to-code tools exist. But most stop at "draw a box, get a div."
 
-**PIXELVINE** takes a fundamentally different approach — it implements a **multi-agent AI pipeline** where an Architect plans the screen system, a Designer renders each screen to pixel-perfect fidelity, and a Critic audits the output against WCAG and UX heuristics. The entire loop runs on a custom **infinity canvas engine** with real-time Convex persistence.
+**PIXELVINE** takes a fundamentally different approach — it implements a **multi-agent AI pipeline** where an Architect plans the screen system, a Designer renders each screen to pixel-perfect f[...]
 
 > **From a single text prompt to 3 production-ready screens in under 30 seconds.**
 
@@ -222,8 +222,9 @@ sequenceDiagram
     DB-->>Convex: real-time update
     Convex-->>Redux: subscribe
     Redux-->>Canvas: re-render
+```
 
-### AI Pipeline
+### Implementation Details
 
 The design agent implements a **dual-step Architect → Designer** pattern:
 
